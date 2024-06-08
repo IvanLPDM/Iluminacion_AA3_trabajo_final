@@ -584,7 +584,6 @@ void main() {
 		models.push_back(LoadOBJModel("Assets/Models/troll.obj"));
 		models.push_back(LoadOBJModel("Assets/Models/rock.obj"));
 		models.push_back(LoadOBJModel("Assets/Models/ball.obj"));
-		models.push_back(LoadOBJModel("Assets/Models/Stylized_Planets.obj"));
 
 		//Compilar programa
 		compiledPrograms.push_back(CreateProgram(myFirstProgram));
