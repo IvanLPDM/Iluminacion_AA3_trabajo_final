@@ -91,6 +91,7 @@ struct Camera {
 	float fov = 45.0f;
 	float mouseSensitivity = 0.1f;
 	float cameraSpeed = 0.001f; // Adjust accordingly
+	float cameraInitialSpeed = cameraSpeed;
 	float maxDistance = 3.0f;
 
 	//Player
@@ -127,6 +128,7 @@ void processInput(GLFWwindow* window) {
 
 
 	static bool flashlightKeyPressed = false;
+	static bool speedPressed = false;
 
 	if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS && !flashlightKeyPressed) {
 		std::cout << "F PRESS" << std::endl;
@@ -135,6 +137,15 @@ void processInput(GLFWwindow* window) {
 	}
 	if (glfwGetKey(window, GLFW_KEY_F) == GLFW_RELEASE) {
 		flashlightKeyPressed = false; // Reiniciar la variable booleana cuando se suelta la tecla F
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS && !speedPressed) {
+		camera.cameraSpeed = 0.01f;
+		speedPressed = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE) {
+		camera.cameraSpeed = camera.cameraInitialSpeed;
+		speedPressed = false; // Reiniciar la variable booleana cuando se suelta la tecla F
 	}
 
 }
@@ -617,9 +628,9 @@ public:
 	glm::mat4 rotationMatrix;
 	glm::mat4 scaleMatrix;
 
-	float angle = 0.0f; // �ngulo inicial
-	float radius = 2.0f; // Radio de la �rbita
-	float orbitSpeed = 0.2f; // Velocidad de la �rbita
+	float angle = 0.0f; 
+	float radius = 7.0f; 
+	float orbitSpeed = 0.2f; 
 
 	GameObject(float r, float g, float b, glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, Texture _texture)
 	{
@@ -711,6 +722,7 @@ void main() {
 	Texture trollTexture("Assets/Textures/troll_v2.png");
 	Texture rockTexture("Assets/Textures/rock_v2.png");
 	Texture sunTexture("Assets/Textures/Cube_Texture.png");
+	Texture moonTexture("Assets/Textures/moon.png");
 
 	//Para los fps
 	auto lastTime = std::chrono::high_resolution_clock::now();
@@ -742,29 +754,31 @@ void main() {
 		models.push_back(LoadOBJModel("Assets/Models/troll.obj"));
 		models.push_back(LoadOBJModel("Assets/Models/rock.obj"));
 		models.push_back(LoadOBJModel("Assets/Models/ball.obj"));
-		models.push_back(LoadOBJModel("Assets/Models/tree.obj"));
+		models.push_back(LoadOBJModel("Assets/Models/Stylized_Planets.obj"));
 
 		//Compilar programa
 		compiledPrograms.push_back(CreateProgram(myFirstProgram));
 
-		GameObject troll1(1, 1, 1, glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.2f, 0.2f, 0.2f), trollTexture);
-		GameObject troll2(0, 1, 1, glm::vec3(0.5f, 0.f, 0.f), glm::vec3(0.f, 315.f, 0.f), glm::vec3(0.2f, 0.2f, 0.2f), trollTexture);
-		GameObject troll3(1, 1, 0, glm::vec3(-0.5f, 0.f, 0.f), glm::vec3(0.f, 45.f, 0.f), glm::vec3(0.2f, 0.2f, 0.2f), trollTexture);
-		//GameObject tree(1, 1, 0, glm::vec3(-0.8f, 0.f, 0.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(100.2f, 100.2f, 100.2f), sunTexture);
-		GameObject rock1(1, 1, 1, glm::vec3(0.f, 0.f, 0.5f), glm::vec3(0.f, 45.f, 0.f), glm::vec3(0.2f, 0.2f, 0.2f), rockTexture);
-		GameObject cloud1(3, 3, 3, glm::vec3(0.f, 0.8f, 0.f), glm::vec3(180.f, 90.f, 0.f), glm::vec3(0.3f, 0.2f, 0.2f), rockTexture);
 		GameObject sun(255, 0, 0, glm::vec3(0.f, 10.0f, 0.f), glm::vec3(180.f, 90.f, 0.f), glm::vec3(0.001f, 0.001f, 0.001f), sunTexture);
-		GameObject moon(255, 255, 255, glm::vec3(0.f, 10.0f, 0.f), glm::vec3(180.f, 90.f, 0.f), glm::vec3(0.001f, 0.001f, 0.001f), sunTexture);
+		GameObject moon(255, 255, 255, glm::vec3(0.f, 10.0f, 0.f), glm::vec3(180.f, 90.f, 0.f), glm::vec3(0.001f, 0.001f, 0.001f), moonTexture);
+		GameObject planet(1, 1, 1, glm::vec3(0.f, -5.0f, 0.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.01f, 0.01f, 0.01f), moonTexture);
 
-		int numRocks = 20;
+		int numItems = 20;
 
 		// Generar puntos de spawn aleatorios
-		std::vector<SpawnPoint> spawnPoints = generateRandomSpawnPoints(numRocks);
+		std::vector<SpawnPoint> spawnPoints = generateRandomSpawnPoints(numItems);
+		std::vector<int> itemType;
 
-		std::vector<GameObject> rocks;
+		std::vector<GameObject> items;
 		for (const auto& spawnPoint : spawnPoints) {
-			rocks.emplace_back(1.0f, 1.0f, 1.0f, spawnPoint.position, spawnPoint.rotation, spawnPoint.scale, rockTexture);
+			items.emplace_back(1.0f, 1.0f, 1.0f, spawnPoint.position, spawnPoint.rotation, spawnPoint.scale, rockTexture);
 		}
+
+		for (int i = 0; i < numItems; i++) {
+			itemType.push_back((int)randomFloat(0, 2));
+		}
+
+		
 
 		Light lightSun;
 
@@ -778,6 +792,7 @@ void main() {
 		trollTexture.LoadTexture();
 		rockTexture.LoadTexture();
 		sunTexture.LoadTexture();
+		moonTexture.LoadTexture();
 
 		//Definimos color para limpiar el buffer de color
 		glClearColor(0.f, 0.f, 0.f, 1.f);
@@ -849,19 +864,13 @@ void main() {
 				}
 			}
 
-
-
-			troll1.preCarga();
-			troll2.preCarga();
-			troll3.preCarga();
-			rock1.preCarga();
-			cloud1.preCarga();
 			sun.preCarga();
 			moon.preCarga();
+			planet.preCarga();
 
-			for (int i = 0; i < numRocks; i++)
+			for (int i = 0; i < numItems; i++)
 			{
-				rocks[i].preCarga();
+				items[i].preCarga();
 			}
 
 			glm::mat4 viewMatrix = glm::lookAt(camera.cameraPos, camera.cameraPos + camera.cameraFront, camera.cameraUp);
@@ -917,31 +926,30 @@ void main() {
 			//Limpiamos los buffers
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-			troll1.Render(trollTexture);
-			models[0].Render();
-
-			troll2.Render(trollTexture);
-			models[0].Render();
-
-			troll3.Render(trollTexture);
-			models[0].Render();
-
-			rock1.Render(rockTexture);
-			models[1].Render();
 
 			sun.Render(sunTexture);
 			models[2].Render();
 
-			moon.Render(sunTexture);
+			moon.Render(moonTexture);
+			models[2].Render();	
+
+			planet.Render(moonTexture);
 			models[2].Render();
 
-			cloud1.Render(rockTexture);
-			models[1].Render();
-
-			for (int i = 0; i < numRocks; i++)
+			for (int i = 0; i < numItems; i++)
 			{
-				rocks[i].Render(rockTexture);
-				models[1].Render();
+				
+
+				if (itemType[i] >= 1)
+				{
+					items[i].Render(rockTexture);
+					models[1].Render();
+				}
+				else if (itemType[i] == 0)
+				{
+					items[i].Render(trollTexture);
+					models[0].Render();
+				}
 			}
 			
 
