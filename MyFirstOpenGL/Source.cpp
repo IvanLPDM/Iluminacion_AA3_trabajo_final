@@ -60,7 +60,7 @@ struct Camera {
 	float fov = 45.0f;
 	float mouseSensitivity = 0.1f;
 	float cameraSpeed = 0.001f; // Adjust accordingly
-	//float maxDistance = 100.0f;
+	float maxDistance = 3.0f;
 
 	//Player
 	bool flashlightOn;
@@ -731,8 +731,8 @@ void main() {
 		Light lightSun;
 
 		camera.flashlightOn = false;
-		camera.innerConeAngle = 12.5f;
-		camera.outerConeAngle = 17.5f;
+		camera.innerConeAngle = 5.5f;
+		camera.outerConeAngle = 7.5f;
 
 		moon.angle = 180;
 
@@ -848,7 +848,7 @@ void main() {
 			GLuint innerConeAngleLoc = glGetUniformLocation(shaderProgram, "innerConeAngle");
 			GLuint outerConeAngleLoc = glGetUniformLocation(shaderProgram, "outerConeAngle");
 
-			//GLuint maxDistanceLoc = glGetUniformLocation(shaderProgram, "maxDistance");
+			GLuint maxDistanceLoc = glGetUniformLocation(shaderProgram, "maxDistance");
 
 
 
@@ -861,7 +861,7 @@ void main() {
 			glUniform1f(outerConeAngleLoc, camera.outerConeAngle);
 			glUniform1f(innerConeAngleLoc, camera.innerConeAngle);
 
-			//glUniform1f(maxDistanceLoc, camera.maxDistance);
+			glUniform1f(maxDistanceLoc, camera.maxDistance);
 
 			/*glUniform3f(flashlightPosLoc, camera.cameraPos.x, camera.cameraPos.y, camera.cameraPos.z);
 			glUniform3f(flashlightDirLoc, camera.cameraFront.x, camera.cameraFront.y, camera.cameraFront.z);
