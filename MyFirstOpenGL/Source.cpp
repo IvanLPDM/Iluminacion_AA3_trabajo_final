@@ -12,6 +12,8 @@
 #include "Model.h"
 #include <chrono>
 #include <random>
+#include "GameObject.h"
+#include "Texture.h"
 
 #define WINDOW_WIDTH 640
 #define WINDOW_HEIGHT 480
@@ -21,16 +23,6 @@
 std::vector<GLuint> compiledPrograms;
 std::vector<Model> models;
 
-enum class CameraStates
-{
-	STATE1,
-	STATE2,
-	STATE3,
-	ORBIT
-};
-
-CameraStates stateCamera = CameraStates::ORBIT;
-
 struct Light
 {
 	glm::vec3 position;
@@ -38,7 +30,7 @@ struct Light
 
 struct SpawnPoint {
 	glm::vec3 position;
-	glm::vec3 rotation; // Represented as Euler angles
+	glm::vec3 rotation; 
 	glm::vec3 scale;
 };
 
@@ -56,9 +48,9 @@ std::vector<SpawnPoint> generateRandomSpawnPoints(int numPoints) {
 
 	for (int i = 0; i < numPoints; ++i) {
 		SpawnPoint point;
-		point.position = glm::vec3(randomFloat(-4.0f, 4.0f), 0.0f, randomFloat(-4.0f, 4.0f)); // Genera posiciones aleatorias
-		point.rotation = glm::vec3((0.0f, 360.0f), randomFloat(0.0f, 360.0f), randomFloat(0.0f, 360.0f)); // Genera rotaciones aleatorias en grados
-		point.scale = glm::vec3(randomFloat(0.1f, 1.0f)); // Genera escalas aleatorias
+		point.position = glm::vec3(randomFloat(-4.0f, 4.0f), 0.0f, randomFloat(-4.0f, 4.0f)); 
+		point.rotation = glm::vec3((0.0f, 360.0f), randomFloat(0.0f, 360.0f), randomFloat(0.0f, 360.0f)); 
+		point.scale = glm::vec3(randomFloat(0.1f, 1.0f)); 
 
 		spawnPoints.push_back(point);
 	}
@@ -71,26 +63,27 @@ struct Camera {
 	float fNear = 0.1;
 	float fFar = 10.f;
 
-	float orbitAngle = 0.0f; // �ngulo inicial
-	float orbitRadius = 2.0f; // Radio de la �rbita
+	float orbitAngle = 0.0f; 
+	float orbitRadius = 2.0f; 
 	float orbitVelocity = 1;
-	float orbitVelocity_2 = 1.0f; // A�ade esto a la estructura Camera
+	float orbitVelocity_2 = 1.0f; 
 
 	glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 	glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 	glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
-	float deltaTime = 0.0f; // Time between current frame and last frame
-	float lastFrame = 0.0f; // Time of last frame
+	float deltaTime = 0.0f; 
+	float lastFrame = 0.0f; 
 
 	bool firstMouse = true;
-	float yaw = -90.0f; // Yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right
+	float yaw = -90.0f;
 	float pitch = 0.0f;
 	float lastX = WINDOW_WIDTH / 2.0;
 	float lastY = WINDOW_HEIGHT / 2.0;
 	float fov = 45.0f;
 	float mouseSensitivity = 0.1f;
-	float cameraSpeed = 0.001f; // Adjust accordingly
+	float cameraSpeed = 0.001f; 
+	float cameraInitialSpeed = cameraSpeed;
 	float maxDistance = 3.0f;
 
 	//Player
@@ -106,13 +99,6 @@ void processInput(GLFWwindow* window) {
 	camera.deltaTime = currentFrame - camera.lastFrame;
 	camera.lastFrame = currentFrame;
 
-	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-		camera.orbitVelocity += 0.1f; // Aumenta la velocidad
-	}
-	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-		camera.orbitVelocity -= 0.1f; // Disminuye la velocidad
-	}
-
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 	{
 		camera.cameraPos += camera.cameraSpeed * camera.cameraFront;
@@ -127,6 +113,7 @@ void processInput(GLFWwindow* window) {
 
 
 	static bool flashlightKeyPressed = false;
+	static bool speedPressed = false;
 
 	if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS && !flashlightKeyPressed) {
 		std::cout << "F PRESS" << std::endl;
@@ -135,6 +122,15 @@ void processInput(GLFWwindow* window) {
 	}
 	if (glfwGetKey(window, GLFW_KEY_F) == GLFW_RELEASE) {
 		flashlightKeyPressed = false; // Reiniciar la variable booleana cuando se suelta la tecla F
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS && !speedPressed) {
+		camera.cameraSpeed = 0.01f;
+		speedPressed = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE) {
+		camera.cameraSpeed = camera.cameraInitialSpeed;
+		speedPressed = false; // Reiniciar la variable booleana cuando se suelta la tecla F
 	}
 
 }
@@ -147,7 +143,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	}
 
 	float xoffset = xpos - camera.lastX;
-	float yoffset = camera.lastY - ypos; // Reversed since y-coordinates go from bottom to top
+	float yoffset = camera.lastY - ypos; 
 	camera.lastX = xpos;
 	camera.lastY = ypos;
 
@@ -157,7 +153,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	camera.yaw += xoffset;
 	camera.pitch += yoffset;
 
-	// Make sure that when pitch is out of bounds, screen doesn't get flipped
 	if (camera.pitch > 89.0f)
 		camera.pitch = 89.0f;
 	if (camera.pitch < -89.0f)
@@ -170,80 +165,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	camera.cameraFront = glm::normalize(front);
 }
 
-class Texture {
-private:
-	int width, height, nrChannels;
-	unsigned char* imageData;
-	GLuint textureID;
 
-public:
-	Texture()
-	{
-
-	}
-	Texture(const char* id)
-	{
-		imageData = stbi_load(id, &width, &height, &nrChannels, 0);
-	}
-
-	void CreateTexture(Texture texture)
-	{
-		const char* id = (const char*)texture.imageData;
-		int _width = texture.width;
-		int _height = texture.height;
-		int _nrChannels = texture.nrChannels;
-
-
-		imageData = stbi_load(id, &_width, &_height, &_nrChannels, 0);
-	}
-
-	void LoadTexture()
-	{
-		//Definimos canal de textura activo
-		glActiveTexture(GL_TEXTURE0);
-
-
-		glGenTextures(1, &textureID);
-
-		//Vinculamos texture
-		glBindTexture(GL_TEXTURE_2D, textureID);
-
-
-		//Cargar datos de la imagen de la textura
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageData);
-
-		//Configuar textura
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-
-		//Generar mipmap
-		glGenerateMipmap(GL_TEXTURE_2D);
-
-		//Liberar memoria de la imagen cargada
-		stbi_image_free(imageData);
-	}
-
-	void GetCroma(float r, float g, float b)
-	{
-		//Cromas
-		int valuePosition = glGetUniformLocation(compiledPrograms[0], "color");
-
-		if (valuePosition != -1)
-		{
-			glUniform3f(valuePosition, r, g, b);
-		}
-		//else
-			//std::cout << "No se ha podido encontrar la direccion" << std::endl;
-	}
-
-	GLuint GetTextureID()
-	{
-		return textureID;
-	}
-
-};
 
 struct ShaderProgram {
 	GLuint vertexShader = 0;
@@ -258,24 +180,6 @@ void Resize_Window(GLFWwindow* window, int iFrameBufferWidth, int iFrameBufferHe
 	//Definir nuevo tama�o del viewport
 	glViewport(0, 0, iFrameBufferWidth, iFrameBufferHeight);
 	glUniform2f(glGetUniformLocation(compiledPrograms[0], "windowSize"), iFrameBufferWidth, iFrameBufferHeight);
-}
-
-//Funcion que genera una matriz de escalado representada por un vector
-glm::mat4 GenerateScaleMatrix(glm::vec3 scaleAxis) {
-
-	return glm::scale(glm::mat4(1.0f), scaleAxis);
-}
-
-//Funcion que genera una matriz de rotacion dado un angulo y un vector
-glm::mat4 GenerateRotationMatrix(glm::vec3 axis, float fDegrees) {
-
-	return glm::rotate(glm::mat4(1.0f), glm::radians(fDegrees), glm::normalize(axis));
-}
-
-//Funcion que genera una matriz de traslacion representada por un vector
-glm::mat4 GenerateTranslationMatrix(glm::vec3 translation) {
-
-	return glm::translate(glm::mat4(1.0f), translation);
 }
 
 
@@ -603,69 +507,6 @@ GLuint CreateProgram(const ShaderProgram& shaders) {
 	}
 }
 
-class GameObject {
-public:
-
-	glm::vec3 position = glm::vec3(0.f);
-	glm::vec3 rotation = glm::vec3(0.f);
-	glm::vec3 scale = glm::vec3(1.f);
-	float r, g, b;
-
-	Texture texture;
-
-	glm::mat4 translationMatrix;
-	glm::mat4 rotationMatrix;
-	glm::mat4 scaleMatrix;
-
-	float angle = 0.0f; // �ngulo inicial
-	float radius = 2.0f; // Radio de la �rbita
-	float orbitSpeed = 0.2f; // Velocidad de la �rbita
-
-	GameObject(float r, float g, float b, glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, Texture _texture)
-	{
-		this->r = r;
-		this->g = g;
-		this->b = b;
-		this->position = position;
-		this->rotation = rotation;
-		this->scale = scale;
-
-		texture.CreateTexture(_texture);
-	}
-
-	void preCarga()
-	{
-		translationMatrix = GenerateTranslationMatrix(position);
-		rotationMatrix = GenerateRotationMatrix(rotation, rotation.y);
-		scaleMatrix = GenerateScaleMatrix(scale);
-	}
-
-	void Render(Texture _texture)
-	{
-		glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "translationMatrix"), 1, GL_FALSE, glm::value_ptr(translationMatrix));
-		glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "rotationMatrix"), 1, GL_FALSE, glm::value_ptr(rotationMatrix));
-		glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix));
-
-		//Cambiar textura
-		glBindTexture(GL_TEXTURE_2D, _texture.GetTextureID());
-		//Croma
-		_texture.GetCroma(r, g, b);
-	}
-
-	void ObjectLoadTexture()
-	{
-		texture.LoadTexture();
-	}
-
-private:
-
-};
-
-
-void updateSunPosition(GameObject sun, float deltaTime) {
-
-
-}
 
 void main() {
 
@@ -711,6 +552,7 @@ void main() {
 	Texture trollTexture("Assets/Textures/troll_v2.png");
 	Texture rockTexture("Assets/Textures/rock_v2.png");
 	Texture sunTexture("Assets/Textures/Cube_Texture.png");
+	Texture moonTexture("Assets/Textures/moon.png");
 
 	//Para los fps
 	auto lastTime = std::chrono::high_resolution_clock::now();
@@ -742,29 +584,31 @@ void main() {
 		models.push_back(LoadOBJModel("Assets/Models/troll.obj"));
 		models.push_back(LoadOBJModel("Assets/Models/rock.obj"));
 		models.push_back(LoadOBJModel("Assets/Models/ball.obj"));
-		models.push_back(LoadOBJModel("Assets/Models/tree.obj"));
+		models.push_back(LoadOBJModel("Assets/Models/Stylized_Planets.obj"));
 
 		//Compilar programa
 		compiledPrograms.push_back(CreateProgram(myFirstProgram));
 
-		GameObject troll1(1, 1, 1, glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.2f, 0.2f, 0.2f), trollTexture);
-		GameObject troll2(0, 1, 1, glm::vec3(0.5f, 0.f, 0.f), glm::vec3(0.f, 315.f, 0.f), glm::vec3(0.2f, 0.2f, 0.2f), trollTexture);
-		GameObject troll3(1, 1, 0, glm::vec3(-0.5f, 0.f, 0.f), glm::vec3(0.f, 45.f, 0.f), glm::vec3(0.2f, 0.2f, 0.2f), trollTexture);
-		//GameObject tree(1, 1, 0, glm::vec3(-0.8f, 0.f, 0.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(100.2f, 100.2f, 100.2f), sunTexture);
-		GameObject rock1(1, 1, 1, glm::vec3(0.f, 0.f, 0.5f), glm::vec3(0.f, 45.f, 0.f), glm::vec3(0.2f, 0.2f, 0.2f), rockTexture);
-		GameObject cloud1(3, 3, 3, glm::vec3(0.f, 0.8f, 0.f), glm::vec3(180.f, 90.f, 0.f), glm::vec3(0.3f, 0.2f, 0.2f), rockTexture);
-		GameObject sun(255, 0, 0, glm::vec3(0.f, 10.0f, 0.f), glm::vec3(180.f, 90.f, 0.f), glm::vec3(0.001f, 0.001f, 0.001f), sunTexture);
-		GameObject moon(255, 255, 255, glm::vec3(0.f, 10.0f, 0.f), glm::vec3(180.f, 90.f, 0.f), glm::vec3(0.001f, 0.001f, 0.001f), sunTexture);
+		GameObject sun(255, 0, 0, glm::vec3(0.f, 10.0f, 0.f), glm::vec3(180.f, 90.f, 0.f), glm::vec3(0.01f, 0.01f, 0.01f), sunTexture);
+		GameObject moon(255, 255, 255, glm::vec3(0.f, 10.0f, 0.f), glm::vec3(180.f, 90.f, 0.f), glm::vec3(0.01f, 0.01f, 0.01f), moonTexture);
+		GameObject planet(1, 1, 1, glm::vec3(0.f, -5.0f, 0.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.01f, 0.01f, 0.01f), moonTexture);
 
-		int numRocks = 20;
+		int numItems = 20;
 
 		// Generar puntos de spawn aleatorios
-		std::vector<SpawnPoint> spawnPoints = generateRandomSpawnPoints(numRocks);
+		std::vector<SpawnPoint> spawnPoints = generateRandomSpawnPoints(numItems);
+		std::vector<int> itemType;
 
-		std::vector<GameObject> rocks;
+		std::vector<GameObject> items;
 		for (const auto& spawnPoint : spawnPoints) {
-			rocks.emplace_back(1.0f, 1.0f, 1.0f, spawnPoint.position, spawnPoint.rotation, spawnPoint.scale, rockTexture);
+			items.emplace_back(1.0f, 1.0f, 1.0f, spawnPoint.position, spawnPoint.rotation, spawnPoint.scale, rockTexture);
 		}
+
+		for (int i = 0; i < numItems; i++) {
+			itemType.push_back((int)randomFloat(0, 2));
+		}
+
+		
 
 		Light lightSun;
 
@@ -772,12 +616,13 @@ void main() {
 		camera.innerConeAngle = 5.5f;
 		camera.outerConeAngle = 7.5f;
 
-		moon.angle = 180;
+		moon.angle = 160;
 
 		//LOAD TEXTURE
 		trollTexture.LoadTexture();
 		rockTexture.LoadTexture();
 		sunTexture.LoadTexture();
+		moonTexture.LoadTexture();
 
 		//Definimos color para limpiar el buffer de color
 		glClearColor(0.f, 0.f, 0.f, 1.f);
@@ -794,10 +639,6 @@ void main() {
 		//Asignar valor variable de textura a usar
 		glUniform1d(glGetUniformLocation(compiledPrograms[0], "textureSampler"), 0);
 		//Generamos el game loop
-
-		//para que la camara orbite
-		float cameraX;
-		float cameraZ;
 
 		while (!glfwWindowShouldClose(window)) {
 
@@ -849,19 +690,13 @@ void main() {
 				}
 			}
 
-
-
-			troll1.preCarga();
-			troll2.preCarga();
-			troll3.preCarga();
-			rock1.preCarga();
-			cloud1.preCarga();
 			sun.preCarga();
 			moon.preCarga();
+			planet.preCarga();
 
-			for (int i = 0; i < numRocks; i++)
+			for (int i = 0; i < numItems; i++)
 			{
-				rocks[i].preCarga();
+				items[i].preCarga();
 			}
 
 			glm::mat4 viewMatrix = glm::lookAt(camera.cameraPos, camera.cameraPos + camera.cameraFront, camera.cameraUp);
@@ -917,31 +752,30 @@ void main() {
 			//Limpiamos los buffers
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-			troll1.Render(trollTexture);
-			models[0].Render();
 
-			troll2.Render(trollTexture);
-			models[0].Render();
-
-			troll3.Render(trollTexture);
-			models[0].Render();
-
-			rock1.Render(rockTexture);
-			models[1].Render();
-
-			sun.Render(sunTexture);
+			sun.Render(sunTexture, compiledPrograms[0]);
 			models[2].Render();
 
-			moon.Render(sunTexture);
+			moon.Render(moonTexture, compiledPrograms[0]);
+			models[2].Render();	
+
+			planet.Render(moonTexture, compiledPrograms[0]);
 			models[2].Render();
 
-			cloud1.Render(rockTexture);
-			models[1].Render();
-
-			for (int i = 0; i < numRocks; i++)
+			for (int i = 0; i < numItems; i++)
 			{
-				rocks[i].Render(rockTexture);
-				models[1].Render();
+				
+
+				if (itemType[i] >= 1)
+				{
+					items[i].Render(rockTexture, compiledPrograms[0]);
+					models[1].Render();
+				}
+				else if (itemType[i] == 0)
+				{
+					items[i].Render(trollTexture, compiledPrograms[0]);
+					models[0].Render();
+				}
 			}
 			
 
