@@ -130,7 +130,7 @@ void processInput(GLFWwindow* window) {
 	}
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE) {
 		camera.cameraSpeed = camera.cameraInitialSpeed;
-		speedPressed = false; // Reiniciar la variable booleana cuando se suelta la tecla F
+		speedPressed = false; 
 	}
 
 }
@@ -648,25 +648,20 @@ void main() {
 			processInput(window);
 
 			//Movimiento sol
-				// Incrementar el �ngulo en funci�n del tiempo
 			sun.angle += sun.orbitSpeed * deltaTime;
 
 			if (sun.angle >= 360.0f) {
 				sun.angle -= 360.0f;
 			}
 
-
-			// Actualizar la posici�n de la esfera
 			sun.position.y = sun.radius * sin(sun.angle);
 			sun.position.z = sun.radius * cos(sun.angle);
 
 			lightSun.position = sun.position;
 
 			//Movimiento luna
-				// Incrementar el �ngulo en funci�n del tiempo
 			moon.angle += moon.orbitSpeed * deltaTime;
 
-			// Actualizar la posici�n de la esfera
 			moon.position.y = moon.radius * sin(moon.angle);
 			moon.position.z = moon.radius * cos(moon.angle);
 
