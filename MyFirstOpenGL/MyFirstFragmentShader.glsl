@@ -70,31 +70,14 @@ void main() {
     }
 
     // Luz de la cámara (linterna)
-    if (flashlightOn) {
-        vec3 flashlightDir = normalize(cameraFront);
-        vec3 toFragment = normalize(primitivePosition.xyz - cameraPosition);
-        float distance = length(cameraPosition - primitivePosition.xyz);
+    if(flashlightOn)
+    {
+        vec3 camDir = normalize(cameraPosition);
+        vec3 camLightDir = normalize(cameraPosition - cameraFront); // Dirección hacia donde mira la cámara
+        float camDiff = max(dot(camDir, camLightDir), 0.0); // Cambiado a camDir
+        vec3 camLight = camDiff * vec3(1.0, 1.0, 1.0); // Ajusta la intensidad de la luz de la cámara según necesites
 
-        if (distance <= maxDistance) {
-            float cosTheta = dot(toFragment, flashlightDir);
-            float cosInner = cos(radians(innerConeAngle));
-            float cosOuter = cos(radians(outerConeAngle));
-
-            if (cosTheta > cosOuter) {
-                // Calcula la intensidad en función de la posición dentro del cono
-                float intensity;
-                if (cosTheta > cosInner) {
-                    intensity = 1.0; // Máxima intensidad en el cono interno
-                } else {
-                    intensity = smoothstep(cosOuter, cosInner, cosTheta); // Disminuye la intensidad hacia el borde del cono externo
-                }
-                // Atenuación de la intensidad por la distancia al fragmento
-                float attenuation = 1.0 / (1.0 + 0.09 * distance + 0.032 * distance * distance);
-                // Aplicar iluminación puntual en el fragmento
-                vec3 diffuse = baseColor.rgb * intensity * attenuation;
-                finalColor += diffuse;
-            }
-        }
+        finalColor += baseColor.rgb * camLight;
     }
 
     fragColor = vec4(finalColor, baseColor.a);

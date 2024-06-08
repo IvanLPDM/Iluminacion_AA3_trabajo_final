@@ -245,12 +245,6 @@ public:
 
 };
 
-
-
-
-
-
-
 struct ShaderProgram {
 	GLuint vertexShader = 0;
 	GLuint geometryShader = 0;
@@ -883,7 +877,11 @@ void main() {
 			glUniform3f(lightDirLocation, lightSun.position.x, lightSun.position.y, lightSun.position.z);
 			glm::vec3 lightDirection = glm::normalize(glm::vec3(1.0f, -1.0f, 0.0f));
 
-
+			// Calcular el frente de la cámara basado en los ángulos de la cámara
+			camera.cameraFront.x = cos(glm::radians(camera.yaw)) * cos(glm::radians(camera.pitch));
+			camera.cameraFront.y = sin(glm::radians(camera.pitch));
+			camera.cameraFront.z = sin(glm::radians(camera.yaw)) * cos(glm::radians(camera.pitch));
+			camera.cameraFront = glm::normalize(camera.cameraFront);
 
 
 			glUseProgram(compiledPrograms[0]);
