@@ -66,6 +66,8 @@ struct Camera {
 	bool flashlightOn;
 	float innerConeAngle;
 	float outerConeAngle;
+
+	int a = 0;
 };
 Camera camera;
 
