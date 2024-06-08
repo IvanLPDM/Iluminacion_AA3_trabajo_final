@@ -2,9 +2,9 @@
 
 uniform sampler2D textureSampler;
 uniform vec3 color;
-uniform vec3 lightPosition;      // Posición del sol
-uniform vec3 moonPosition;       // Posición de la luna
-uniform vec3 cameraPosition;     // Posición de la cámara (y la luz)
+uniform vec3 lightPosition;     
+uniform vec3 moonPosition;     
+uniform vec3 cameraPosition;     
 uniform vec3 cameraFront;
 uniform bool flashlightOn;
 
@@ -26,7 +26,7 @@ void main() {
     vec3 finalColor = baseColor.rgb * ambientColor.rgb;
 
     // Luz del sol
-    if (lightPosition.y > 0.0) 
+    if (lightPosition.y > 0.0) //Si el sol esta a 180grados del plano
     {
         vec3 lightDirection = normalize(lightPosition - primitivePosition.xyz);
         float sourceLightAngle = max(dot(normalsFragmentShader, lightDirection), 0.0);
@@ -48,7 +48,7 @@ void main() {
     }
 
     // Luz de la luna
-    else
+    else //si el sol esta abajo
     {
         vec3 moonDirection = normalize(moonPosition - primitivePosition.xyz);
         float moonLightAngle = max(dot(normalsFragmentShader, moonDirection), 0.0);
