@@ -10,6 +10,7 @@ uniform bool flashlightOn;
 
 uniform float outerConeAngle;
 uniform float innerConeAngle;
+uniform float maxDistance;       // Distancia máxima de la linterna
 
 in vec2 uvsFragmentShader;
 in vec3 normalsFragmentShader;
@@ -30,22 +31,18 @@ void main() {
         vec3 lightDirection = normalize(lightPosition - primitivePosition.xyz);
         float sourceLightAngle = max(dot(normalsFragmentShader, lightDirection), 0.0);
 
-        if(lightPosition.y < 0.5)
-        {
+        if (lightPosition.y < 0.5) {
             ambientColor = vec4(0.5, 0.2, 0.1, 0.0);
             finalColor += baseColor.rgb * ambientColor.rgb;
         }
-        if(lightPosition.y < 1)
-        {
+        if (lightPosition.y < 1) {
             ambientColor = vec4(0.8, 0.4, 0.1, 0.0);
             finalColor += baseColor.rgb * ambientColor.rgb;
         }
-        if(lightPosition.y > 1)
-        {
+        if (lightPosition.y > 1) {
             ambientColor = vec4(1.2, 0.8, 0.3, 1.0);
             finalColor += baseColor.rgb * ambientColor.rgb;
         }
-       
 
         finalColor += baseColor.rgb * sourceLightAngle;
     }
@@ -56,46 +53,49 @@ void main() {
         vec3 moonDirection = normalize(moonPosition - primitivePosition.xyz);
         float moonLightAngle = max(dot(normalsFragmentShader, moonDirection), 0.0);
 
-        if(lightPosition.y > -0.5)
-        {
+        if (lightPosition.y > -0.5) {
             ambientColor = vec4(0.0, 0.1, 0.4, 1.0);
             finalColor += baseColor.rgb * ambientColor.rgb;
         }
-        if(lightPosition.y > -1)
-        {
+        if (lightPosition.y > -1) {
             ambientColor = vec4(0.1, 0.2, 0.8, 1.0);
             finalColor += baseColor.rgb * ambientColor.rgb;
         }
-        if(lightPosition.y < -1)
-        {
+        if (lightPosition.y < -1) {
             ambientColor = vec4(0.1, 0.2, 0.6, 1.0);
             finalColor += baseColor.rgb * ambientColor.rgb;
         }
 
-        
-
         finalColor += baseColor.rgb * moonLightAngle;
     }
 
-
     // Luz de la cámara (linterna)
-    if(flashlightOn)
-    {
-        vec3 camDir = normalize(cameraPosition - primitivePosition.xyz);
-        vec3 camLightDir = normalize(cameraPosition + cameraFront - primitivePosition.xyz); // Dirección hacia donde mira la cámara
-        float camDiff = max(dot(normalsFragmentShader, camLightDir), 0.0);
-        vec3 camLight = camDiff * vec3(1.0, 1.0, 1.0); // Ajusta la intensidad de la luz de la cámara según necesites
+    if (flashlightOn) {
+        vec3 flashlightDir = normalize(cameraFront);
+        vec3 toFragment = normalize(primitivePosition.xyz - cameraPosition);
+        float distance = length(cameraPosition - primitivePosition.xyz);
 
-        // Calcular la distancia desde la cámara hasta el fragmento
-            float distance = length(cameraPosition - primitivePosition.xyz);
-            // Calcular la atenuación cuadrática de la luz por la distancia
-            float attenuation = 1.0 / (1.0 + 0.8 * distance + 0.1 * distance * distance);
-            // Sumar la contribución de la luz al color final
-            finalColor += baseColor.rgb * attenuation;
+        if (distance <= maxDistance) {
+            float cosTheta = dot(toFragment, flashlightDir);
+            float cosInner = cos(radians(innerConeAngle));
+            float cosOuter = cos(radians(outerConeAngle));
+
+            if (cosTheta > cosOuter) {
+                // Calcula la intensidad en función de la posición dentro del cono
+                float intensity;
+                if (cosTheta > cosInner) {
+                    intensity = 1.0; // Máxima intensidad en el cono interno
+                } else {
+                    intensity = smoothstep(cosOuter, cosInner, cosTheta); // Disminuye la intensidad hacia el borde del cono externo
+                }
+                // Atenuación de la intensidad por la distancia al fragmento
+                float attenuation = 1.0 / (1.0 + 0.09 * distance + 0.032 * distance * distance);
+                // Aplicar iluminación puntual en el fragmento
+                vec3 diffuse = baseColor.rgb * intensity * attenuation;
+                finalColor += diffuse;
+            }
+        }
     }
-    
-
-
 
     fragColor = vec4(finalColor, baseColor.a);
 }
