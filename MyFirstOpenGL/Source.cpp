@@ -11,6 +11,7 @@
 #include <stb_image.h>
 #include "Model.h"
 #include <chrono>
+#include <random>
 
 #define WINDOW_WIDTH 640
 #define WINDOW_HEIGHT 480
@@ -34,6 +35,36 @@ struct Light
 {
 	glm::vec3 position;
 };
+
+struct SpawnPoint {
+	glm::vec3 position;
+	glm::vec3 rotation; // Represented as Euler angles
+	glm::vec3 scale;
+};
+
+//Hecho por ia---
+float randomFloat(float min, float max) {
+	static std::random_device rd;
+	static std::mt19937 gen(rd());
+	std::uniform_real_distribution<> dis(min, max);
+	return static_cast<float>(dis(gen));
+}
+//---------------
+
+std::vector<SpawnPoint> generateRandomSpawnPoints(int numPoints) {
+	std::vector<SpawnPoint> spawnPoints;
+
+	for (int i = 0; i < numPoints; ++i) {
+		SpawnPoint point;
+		point.position = glm::vec3(randomFloat(-4.0f, 4.0f), 0.0f, randomFloat(-4.0f, 4.0f)); // Genera posiciones aleatorias
+		point.rotation = glm::vec3((0.0f, 360.0f), randomFloat(0.0f, 360.0f), randomFloat(0.0f, 360.0f)); // Genera rotaciones aleatorias en grados
+		point.scale = glm::vec3(randomFloat(0.1f, 1.0f)); // Genera escalas aleatorias
+
+		spawnPoints.push_back(point);
+	}
+
+	return spawnPoints;
+}
 
 struct Camera {
 	float fFov = 45.f;
@@ -717,6 +748,7 @@ void main() {
 		models.push_back(LoadOBJModel("Assets/Models/troll.obj"));
 		models.push_back(LoadOBJModel("Assets/Models/rock.obj"));
 		models.push_back(LoadOBJModel("Assets/Models/ball.obj"));
+		models.push_back(LoadOBJModel("Assets/Models/tree.obj"));
 
 		//Compilar programa
 		compiledPrograms.push_back(CreateProgram(myFirstProgram));
@@ -724,10 +756,22 @@ void main() {
 		GameObject troll1(1, 1, 1, glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.2f, 0.2f, 0.2f), trollTexture);
 		GameObject troll2(0, 1, 1, glm::vec3(0.5f, 0.f, 0.f), glm::vec3(0.f, 315.f, 0.f), glm::vec3(0.2f, 0.2f, 0.2f), trollTexture);
 		GameObject troll3(1, 1, 0, glm::vec3(-0.5f, 0.f, 0.f), glm::vec3(0.f, 45.f, 0.f), glm::vec3(0.2f, 0.2f, 0.2f), trollTexture);
+		//GameObject tree(1, 1, 0, glm::vec3(-0.8f, 0.f, 0.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(100.2f, 100.2f, 100.2f), sunTexture);
 		GameObject rock1(1, 1, 1, glm::vec3(0.f, 0.f, 0.5f), glm::vec3(0.f, 45.f, 0.f), glm::vec3(0.2f, 0.2f, 0.2f), rockTexture);
 		GameObject cloud1(3, 3, 3, glm::vec3(0.f, 0.8f, 0.f), glm::vec3(180.f, 90.f, 0.f), glm::vec3(0.3f, 0.2f, 0.2f), rockTexture);
 		GameObject sun(255, 0, 0, glm::vec3(0.f, 10.0f, 0.f), glm::vec3(180.f, 90.f, 0.f), glm::vec3(0.001f, 0.001f, 0.001f), sunTexture);
 		GameObject moon(255, 255, 255, glm::vec3(0.f, 10.0f, 0.f), glm::vec3(180.f, 90.f, 0.f), glm::vec3(0.001f, 0.001f, 0.001f), sunTexture);
+
+		int numRocks = 20;
+
+		// Generar puntos de spawn aleatorios
+		std::vector<SpawnPoint> spawnPoints = generateRandomSpawnPoints(numRocks);
+
+		std::vector<GameObject> rocks;
+		for (const auto& spawnPoint : spawnPoints) {
+			rocks.emplace_back(1.0f, 1.0f, 1.0f, spawnPoint.position, spawnPoint.rotation, spawnPoint.scale, rockTexture);
+		}
+
 		Light lightSun;
 
 		camera.flashlightOn = false;
@@ -821,6 +865,11 @@ void main() {
 			sun.preCarga();
 			moon.preCarga();
 
+			for (int i = 0; i < numRocks; i++)
+			{
+				rocks[i].preCarga();
+			}
+
 			glm::mat4 viewMatrix = glm::lookAt(camera.cameraPos, camera.cameraPos + camera.cameraFront, camera.cameraUp);
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "viewMatrix"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
 
@@ -863,12 +912,6 @@ void main() {
 
 			glUniform1f(maxDistanceLoc, camera.maxDistance);
 
-			/*glUniform3f(flashlightPosLoc, camera.cameraPos.x, camera.cameraPos.y, camera.cameraPos.z);
-			glUniform3f(flashlightDirLoc, camera.cameraFront.x, camera.cameraFront.y, camera.cameraFront.z);
-			glUniform1f(innerConeAngleLoc, camera.innerConeAngle);
-			glUniform1f(outerConeAngleLoc, camera.outerConeAngle);
-			glUniform1i(flashlightOnLoc, camera.flashlightOn ? 1 : 0);*/
-
 
 
 
@@ -897,7 +940,12 @@ void main() {
 			cloud1.Render(rockTexture);
 			models[1].Render();
 
-
+			for (int i = 0; i < numRocks; i++)
+			{
+				rocks[i].Render(rockTexture);
+				models[1].Render();
+			}
+			
 
 			// Guardar el tiempo actual para el pr�ximo fotograma
 			lastTime = currentTime;
