@@ -73,9 +73,9 @@ void main() {
     if(flashlightOn)
     {
         vec3 camDir = normalize(cameraPosition);
-        vec3 camLightDir = normalize(cameraPosition - cameraFront); // Dirección hacia donde mira la cámara
-        float camDiff = max(dot(camDir, camLightDir), 0.0); // Cambiado a camDir
-        vec3 camLight = camDiff * vec3(1.0, 1.0, 1.0); // Ajusta la intensidad de la luz de la cámara según necesites
+        vec3 camLightDir = normalize(cameraPosition - cameraFront); 
+        float camDiff = max(dot(camDir, camLightDir), 0.0); 
+        vec3 camLight = camDiff * vec3(1.0, 1.0, 1.0); 
 
         finalColor += baseColor.rgb * camLight;
     }
