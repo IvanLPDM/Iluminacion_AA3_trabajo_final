@@ -14,6 +14,7 @@
 #include <random>
 #include "GameObject.h"
 #include "Texture.h"
+#include "Plane.h"
 
 #define WINDOW_WIDTH 640
 #define WINDOW_HEIGHT 480
@@ -23,15 +24,13 @@
 std::vector<GLuint> compiledPrograms;
 std::vector<Model> models;
 
-struct Light
-{
-	glm::vec3 position;
-};
+
 
 struct SpawnPoint {
 	glm::vec3 position;
 	glm::vec3 rotation; 
 	glm::vec3 scale;
+	ObjectType type;
 };
 
 //Hecho por ia---
@@ -46,11 +45,30 @@ float randomFloat(float min, float max) {
 std::vector<SpawnPoint> generateRandomSpawnPoints(int numPoints) {
 	std::vector<SpawnPoint> spawnPoints;
 
+	int j;
+
 	for (int i = 0; i < numPoints; ++i) {
 		SpawnPoint point;
-		point.position = glm::vec3(randomFloat(-4.0f, 4.0f), 0.0f, randomFloat(-4.0f, 4.0f)); 
-		point.rotation = glm::vec3((0.0f, 360.0f), randomFloat(0.0f, 360.0f), randomFloat(0.0f, 360.0f)); 
-		point.scale = glm::vec3(randomFloat(0.1f, 1.0f)); 
+
+		j = ((int)randomFloat(0, 2));
+
+		if (j == 1)
+		{
+			//troll
+			point.position = glm::vec3(randomFloat(-2.0f, 2.0f), 0.0f, randomFloat(-2.0f, 2.0f));
+			point.rotation = glm::vec3(randomFloat(0.0f, 10.0f), randomFloat(0.0f, 10.0f), 90);
+			point.scale = glm::vec3(randomFloat(0.1f, 0.3f));
+			point.type = ObjectType::TROLL;
+		}
+		else
+		{
+			//rock
+			point.position = glm::vec3(randomFloat(-3.0f, 3.0f), 0.0f, randomFloat(-3.0f, 3.0f));
+			point.rotation = glm::vec3((0.0f, 360.0f), randomFloat(0.0f, 360.0f), randomFloat(0.0f, 360.0f));
+			point.scale = glm::vec3(randomFloat(0.1f, 1.0f));
+			point.type = ObjectType::ROCK;
+		}
+
 
 		spawnPoints.push_back(point);
 	}
@@ -92,6 +110,37 @@ struct Camera {
 	float outerConeAngle;
 };
 Camera camera;
+
+class Light {
+public:
+	glm::vec3 position;
+	glm::vec3 direction;
+	glm::vec3 color;
+	float outerConeAngle;
+	float innerConeAngle;
+	float maxDistance;
+
+	Light()
+	{
+		color = { 1.0f, 1.0f, 1.0f };
+	}
+	Light(glm::vec3 position, glm::vec3 direction, glm::vec3 color, float outerConeAngle, float innerConeAngle, float maxDistance)
+		: position(position), direction(direction), color(color), outerConeAngle(outerConeAngle), innerConeAngle(innerConeAngle), maxDistance(maxDistance) {}
+
+	void setUniforms(GLuint shaderProgram) {
+		glUniform3fv(glGetUniformLocation(shaderProgram, "flashlightPosition"), 1, glm::value_ptr(position));
+		glUniform3fv(glGetUniformLocation(shaderProgram, "flashlightDirection"), 1, glm::value_ptr(direction));
+		glUniform3fv(glGetUniformLocation(shaderProgram, "flashlightColor"), 1, glm::value_ptr(color));
+		glUniform1f(glGetUniformLocation(shaderProgram, "outerConeAngle"), glm::cos(glm::radians(outerConeAngle)));
+		glUniform1f(glGetUniformLocation(shaderProgram, "innerConeAngle"), glm::cos(glm::radians(innerConeAngle)));
+		glUniform1f(glGetUniformLocation(shaderProgram, "maxDistance"), maxDistance);
+	}
+
+	void UpdateFlashlight(Camera& camera) {
+		position = camera.cameraPos;
+		direction = camera.cameraFront;
+	}
+};
 
 //Inputs
 void processInput(GLFWwindow* window) {
@@ -590,26 +639,33 @@ void main() {
 
 		GameObject sun(255, 0, 0, glm::vec3(0.f, 10.0f, 0.f), glm::vec3(180.f, 90.f, 0.f), glm::vec3(0.01f, 0.01f, 0.01f), sunTexture);
 		GameObject moon(255, 255, 255, glm::vec3(0.f, 10.0f, 0.f), glm::vec3(180.f, 90.f, 0.f), glm::vec3(0.01f, 0.01f, 0.01f), moonTexture);
-		GameObject planet(1, 1, 1, glm::vec3(0.f, -5.0f, 0.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.01f, 0.01f, 0.01f), moonTexture);
+		GameObject planet(1, 1, 1, glm::vec3(0.f, -1.0f, 0.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(1, 1, 1), moonTexture);
+		GameObject nave(1, 1, 1, glm::vec3(0.f, 0.0f, 0.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(100.f, 100.f, 100.f), moonTexture);
 
 		int numItems = 20;
 
 		// Generar puntos de spawn aleatorios
 		std::vector<SpawnPoint> spawnPoints = generateRandomSpawnPoints(numItems);
-		std::vector<int> itemType;
 
 		std::vector<GameObject> items;
-		for (const auto& spawnPoint : spawnPoints) {
-			items.emplace_back(1.0f, 1.0f, 1.0f, spawnPoint.position, spawnPoint.rotation, spawnPoint.scale, rockTexture);
-		}
+		int i = 0;
 
-		for (int i = 0; i < numItems; i++) {
-			itemType.push_back((int)randomFloat(0, 2));
+		for (const auto& spawnPoint : spawnPoints) 
+		{
+			items.emplace_back(1.0f, 1.0f, 1.0f, 
+				spawnPoint.position, spawnPoint.rotation, spawnPoint.scale, trollTexture, spawnPoint.type);
 		}
-
-		
 
 		Light lightSun;
+		
+		Light Linterna(
+			camera.cameraPos, 
+			camera.cameraFront, 
+			glm::vec3(1.0f, 1.0f, 1.0f), 
+			12.5f, 
+			17.5f, 
+			300.0f 
+		);
 
 		camera.flashlightOn = false;
 		camera.innerConeAngle = 5.5f;
@@ -687,6 +743,7 @@ void main() {
 			sun.preCarga();
 			moon.preCarga();
 			planet.preCarga();
+			nave.preCarga();
 
 			for (int i = 0; i < numItems; i++)
 			{
@@ -726,7 +783,8 @@ void main() {
 
 			GLuint maxDistanceLoc = glGetUniformLocation(shaderProgram, "maxDistance");
 
-
+			Linterna.UpdateFlashlight(camera);
+			Linterna.setUniforms(compiledPrograms[0]);
 
 			glUniform3f(lightPosLoc, sun.position.x, sun.position.y, sun.position.z);
 			glUniform3f(moonPosLoc, moon.position.x, moon.position.y, moon.position.z);
@@ -756,19 +814,20 @@ void main() {
 			planet.Render(moonTexture, compiledPrograms[0]);
 			models[2].Render();
 
+
 			for (int i = 0; i < numItems; i++)
 			{
 				
 
-				if (itemType[i] >= 1)
-				{
-					items[i].Render(rockTexture, compiledPrograms[0]);
-					models[1].Render();
-				}
-				else if (itemType[i] == 0)
+				if (items[i].typeOb == ObjectType::TROLL)
 				{
 					items[i].Render(trollTexture, compiledPrograms[0]);
 					models[0].Render();
+				}
+				else if (items[i].typeOb == ObjectType::ROCK)
+				{
+					items[i].Render(rockTexture, compiledPrograms[0]);
+					models[1].Render();
 				}
 			}
 			
