@@ -5,6 +5,12 @@
 #include <gtc/matrix_transform.hpp>
 #include "OperacionesMatriciales.h"
 
+enum class ObjectType
+{
+	ROCK,
+	TROLL
+};
+
 class GameObject {
 public:
 
@@ -23,6 +29,8 @@ public:
 	float radius = 7.0f;
 	float orbitSpeed = 0.2f;
 
+	ObjectType typeOb;
+
 	GameObject(float r, float g, float b, glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, Texture _texture)
 	{
 		this->r = r;
@@ -31,6 +39,21 @@ public:
 		this->position = position;
 		this->rotation = rotation;
 		this->scale = scale;
+		
+
+		texture.CreateTexture(_texture);
+	}
+
+	GameObject(float r, float g, float b, glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, Texture _texture, ObjectType _type)
+	{
+		this->r = r;
+		this->g = g;
+		this->b = b;
+		this->position = position;
+		this->rotation = rotation;
+		this->scale = scale;
+		this->typeOb = _type;
+
 
 		texture.CreateTexture(_texture);
 	}
@@ -57,6 +80,11 @@ public:
 	void ObjectLoadTexture()
 	{
 		texture.LoadTexture();
+	}
+
+	void setObjectType(ObjectType _type)
+	{
+		this->typeOb = _type;
 	}
 
 	

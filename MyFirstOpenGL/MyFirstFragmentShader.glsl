@@ -1,20 +1,21 @@
 #version 440 core
 
 uniform sampler2D textureSampler;
-uniform vec3 color;
-uniform vec3 lightPosition;     
-uniform vec3 moonPosition;     
-uniform vec3 cameraPosition;     
+uniform vec3 lightPosition;
+uniform vec3 moonPosition;
+uniform vec3 cameraPosition;
 uniform vec3 cameraFront;
 uniform bool flashlightOn;
 
 uniform float outerConeAngle;
 uniform float innerConeAngle;
-uniform float maxDistance;       // Distancia máxima de la linterna
+uniform float maxDistance;
+
+uniform vec3 flashlightColor;
 
 in vec2 uvsFragmentShader;
 in vec3 normalsFragmentShader;
-in vec4 primitivePosition;
+in vec4 primitivePosition; // Recibimos la posición del fragmento en espacio mundial
 
 out vec4 fragColor;
 
@@ -26,58 +27,45 @@ void main() {
     vec3 finalColor = baseColor.rgb * ambientColor.rgb;
 
     // Luz del sol
-    if (lightPosition.y > 0.0) //Si el sol esta a 180grados del plano
-    {
+    if (lightPosition.y > 0.0) {
         vec3 lightDirection = normalize(lightPosition - primitivePosition.xyz);
         float sourceLightAngle = max(dot(normalsFragmentShader, lightDirection), 0.0);
 
-        if (lightPosition.y < 0.5) {
-            ambientColor = vec4(0.5, 0.2, 0.1, 0.0);
-            finalColor += baseColor.rgb * ambientColor.rgb;
-        }
-        if (lightPosition.y < 1) {
-            ambientColor = vec4(0.8, 0.4, 0.1, 0.0);
-            finalColor += baseColor.rgb * ambientColor.rgb;
-        }
-        if (lightPosition.y > 1) {
-            ambientColor = vec4(1.2, 0.8, 0.3, 1.0);
-            finalColor += baseColor.rgb * ambientColor.rgb;
-        }
+        // Interpolación del color de rojo a azul
+        vec3 sunColor = mix(vec3(0.8, 0.4, 0.1), vec3(0.1, 0.2, 0.8), clamp(lightPosition.y, 0.0, 1.0));
 
-        finalColor += baseColor.rgb * sourceLightAngle;
+        ambientColor = vec4(sunColor * 0.9, 1.0);
+        finalColor += baseColor.rgb * ambientColor.rgb;
+        finalColor += baseColor.rgb * sourceLightAngle * sunColor;
     }
-
     // Luz de la luna
-    else //si el sol esta abajo
-    {
+    else {
         vec3 moonDirection = normalize(moonPosition - primitivePosition.xyz);
         float moonLightAngle = max(dot(normalsFragmentShader, moonDirection), 0.0);
 
-        if (lightPosition.y > -0.5) {
-            ambientColor = vec4(0.0, 0.1, 0.4, 1.0);
-            finalColor += baseColor.rgb * ambientColor.rgb;
-        }
-        if (lightPosition.y > -1) {
-            ambientColor = vec4(0.1, 0.2, 0.8, 1.0);
-            finalColor += baseColor.rgb * ambientColor.rgb;
-        }
-        if (lightPosition.y < -1) {
-            ambientColor = vec4(0.1, 0.2, 0.6, 1.0);
-            finalColor += baseColor.rgb * ambientColor.rgb;
-        }
+        // Interpolación del color de azul a rojo
+        vec3 moonColor = mix(vec3(0.1, 0.2, 0.8), vec3(0.8, 0.4, 0.1), clamp(-lightPosition.y, 0.0, 1.0));
 
-        finalColor += baseColor.rgb * moonLightAngle;
+        ambientColor = vec4(moonColor * 1.4, 1.0);
+        finalColor += baseColor.rgb * ambientColor.rgb;
+        finalColor += baseColor.rgb * moonLightAngle * moonColor;
     }
 
-    // Luz de la cámara (linterna)
-    if(flashlightOn)
-    {
-        vec3 camDir = normalize(cameraPosition);
-        vec3 camLightDir = normalize(cameraPosition - cameraFront); 
-        float camDiff = max(dot(camDir, camLightDir), 0.0); 
-        vec3 camLight = camDiff * vec3(1.0, 1.0, 1.0); 
+    // Luz de la linterna
+    if (flashlightOn) {
+        vec3 lightDir = normalize(cameraFront);
+        vec3 toFragment = normalize(primitivePosition.xyz - cameraPosition);
+        float theta = dot(lightDir, toFragment);
 
-        finalColor += baseColor.rgb * camLight;
+        float epsilon = innerConeAngle - outerConeAngle;
+        float intensity = clamp((theta - outerConeAngle) / epsilon, 0.0, 1.0);
+
+        float distance = length(cameraPosition - primitivePosition.xyz);
+        float attenuation = 1.0 / (distance * distance);
+        attenuation *= (1.0 - smoothstep(0.0, maxDistance, distance));
+
+        vec3 diffuse = flashlightColor * max(dot(normalsFragmentShader, toFragment), 0.0);
+        finalColor += baseColor.rgb * diffuse * attenuation * intensity;
     }
 
     fragColor = vec4(finalColor, baseColor.a);
