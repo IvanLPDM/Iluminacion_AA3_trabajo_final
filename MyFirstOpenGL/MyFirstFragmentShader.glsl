@@ -15,7 +15,7 @@ uniform vec3 flashlightColor;
 
 in vec2 uvsFragmentShader;
 in vec3 normalsFragmentShader;
-in vec4 primitivePosition; // Recibimos la posición del fragmento en espacio mundial
+in vec4 primitivePosition; 
 
 out vec4 fragColor;
 
@@ -31,7 +31,6 @@ void main() {
         vec3 lightDirection = normalize(lightPosition - primitivePosition.xyz);
         float sourceLightAngle = max(dot(normalsFragmentShader, lightDirection), 0.0);
 
-        // Interpolación del color de rojo a azul
         vec3 sunColor = mix(vec3(0.8, 0.4, 0.1), vec3(0.1, 0.2, 0.8), clamp(lightPosition.y, 0.0, 1.0));
 
         ambientColor = vec4(sunColor * 0.9, 1.0);
@@ -43,7 +42,6 @@ void main() {
         vec3 moonDirection = normalize(moonPosition - primitivePosition.xyz);
         float moonLightAngle = max(dot(normalsFragmentShader, moonDirection), 0.0);
 
-        // Interpolación del color de azul a rojo
         vec3 moonColor = mix(vec3(0.1, 0.2, 0.8), vec3(0.8, 0.4, 0.1), clamp(-lightPosition.y, 0.0, 1.0));
 
         ambientColor = vec4(moonColor * 1.4, 1.0);
